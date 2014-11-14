@@ -33,8 +33,8 @@ class Invocation(object):
   def __repr__(self):
     return self.method_name + "(" + ", ".join([repr(p) for p in self.params]) + ")"
 
-  def answer_first(self):
-    return self.answers[0].answer()
+  def answer_first(self, invocation):
+    return self.answers[0].answer(invocation)
   
 class MatchingInvocation(Invocation):
   @staticmethod
@@ -71,7 +71,7 @@ class RememberedInvocation(Invocation):
 
     for matching_invocation in self.mock.stubbed_invocations:
       if matching_invocation.matches(self):
-        return matching_invocation.answer_first()
+        return matching_invocation.answer_first(self)
 
     return self.chain if self.mock.chainable else None
 
@@ -133,7 +133,11 @@ class AnswerSelector(object):
   def __init__(self, invocation):
     self.invocation = invocation
     self.answer = None
-  
+
+  def thenAnswer(self, answer):
+    self.__then(answer)
+    return self
+
   def thenReturn(self, *return_values):
     for return_value in return_values:
       self.__then(Return(return_value))
@@ -166,24 +170,24 @@ class CompositeAnswer(object):
   def add(self, answer):
     self.answers.insert(0, answer)
     
-  def answer(self):
+  def answer(self, invocation):
     if len(self.answers) > 1:
       a = self.answers.pop()
     else:
       a = self.answers[0]
       
-    return a.answer()
+    return a.answer(invocation)
 
 class Raise(object):
   def __init__(self, exception):
     self.exception = exception
     
-  def answer(self):
+  def answer(self, invocation):
     raise self.exception
   
 class Return(object):
   def __init__(self, return_value):
     self.return_value = return_value
     
-  def answer(self):
+  def answer(self, invocation):
     return self.return_value
